@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>چرخ شانس نهایی</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-color: #1a2a3a;
+            --panel-bg: #2c3e50;
+            --text-color: #ecf0f1;
+            --primary-color: #3498db;
+            --red-color: #e74c3c;
+            --winner-color-1: #f1c40f;
+            --winner-color-2: #e67e22;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .wheel-section {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .entries-section {
+            width: 300px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            box-shadow: -5px 0px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .entries-section h2 {
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            font-size: 1.5rem;
+        }
+
+        #namesInput {
+            flex-grow: 1;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #34495e;
+            color: var(--text-color);
+            border: 1px solid #4a627a;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 1rem;
+            resize: none;
+        }
+        
+        #namesInput:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #wheelCanvas {
+            transition-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1);
+            transition-property: transform;
+        }
+
+        .pointer {
+            position: absolute;
+            top: 50%;
+            right: -25px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 30px solid transparent;
+            border-bottom: 30px solid transparent;
+            border-right: 50px solid var(--red-color);
+            z-index: 10;
+        }
+
+        /* --- اصلاحیه: استایل لوگو --- */
+        #wheelLogo {
+            position: absolute;
+            width: 120px; /* اندازه لوگو */
+            height: 120px;
+            border-radius: 50%; /* اگر لوگو دایره ای است */
+            background-color: white; /* پس زمینه سفید برای لوگو */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 11; /* بالاتر از دکمه چرخش */
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
+            pointer-events: none; /* تا روی دکمه چرخش تاثیری نداشته باشد */
+            overflow: hidden; /* اگر لوگو از دایره بیرون زد */
+        }
+        #wheelLogo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* برای اینکه لوگو کامل دیده شود */
+        }
+        /* --------------------------- */
+
+
+        #spinButton {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            color: var(--bg-color);
+            border-radius: 50%;
+            border: 8px solid #ecf0f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            user-select: none;
+            transition: transform 0.2s, background-color 0.3s;
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
+        }
+
+        #spinButton:active {
+            transform: scale(0.95);
+        }
+        
+        #spinButton.disabled {
+            cursor: not-allowed;
+            background-color: #7f8c8d;
+            color: #bdc3c7;
+        }
+
+        /* --- Modal Styles --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); display: flex;
+            justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s;
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background: var(--panel-bg); padding: 40px; border-radius: 15px;
+            text-align: center; box-shadow: 0 5px 25px rgba(0,0,0,0.4);
+            transform: scale(0.8); transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-content h2 { margin: 0 0 10px 0; font-size: 2.5rem; color: var(--winner-color-1); }
+        .winner-name {
+            font-size: 3rem; font-weight: 900; margin: 20px 0; padding: 10px 30px;
+            border-radius: 10px; background: linear-gradient(45deg, var(--winner-color-1), var(--winner-color-2));
+            color: var(--bg-color);
+        }
+        
+        #closeModalButton {
+            background-color: var(--primary-color); color: white; border: none;
+            padding: 10px 30px; border-radius: 8px; font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer; transition: background-color 0.3s;
+        }
+        #closeModalButton:hover { background-color: #2980b9; }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="wheel-section">
+            <div class="wheel-container">
+                <canvas id="wheelCanvas" width="600" height="600"></canvas>
+                <div class="pointer"></div>
+                <div id="spinButton">بچرخون!</div>
+                <div id="wheelLogo">
+                    <img src="https://tooamerica.com/assets/admin/uploads/setting/site/1403-10-02/1734881844/Remove-bg.ai_1734881725642.webp" alt="TooAmerica Logo">
+                </div>
+                </div>
+        </div>
+        <div class="entries-section">
+            <h2>قرعه کشی جشنواره تابستانه توآمریکا</h2>
+            <textarea id="namesInput" placeholder="هر اسم در یک خط..."></textarea>
+        </div>
+    </div>
+
+    <div id="winnerModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>تبریک به برنده!</h2>
+            <p class="winner-name"></p>
+            <button id="closeModalButton">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // --- سناریوی برندگان رو اینجا به ترتیب تعریف کن ---
+        const winnerScenario = ["علی", "سارا", "رضا", "فاطمه"];
+        // ---------------------------------------------------
+
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinButton = document.getElementById('spinButton');
+        const namesInput = document.getElementById('namesInput');
+        const modal = document.getElementById('winnerModal');
+        const winnerNameEl = modal.querySelector('.winner-name');
+        const closeModalButton = document = document.getElementById('closeModalButton');
+        const wheelLogo = document.getElementById('wheelLogo'); // لوگو
+
+        let names = [];
+        const colors = ["#e67e22", "#3498db", "#2ecc71", "#9b59b6", "#f1c40f", "#1abc9c", "#e74c3c", "#d35400", "#2980b9", "#27ae60"];
+        
+        let totalRotation = 0;
+        let scenarioIndex = 0;
+
+        const getNames = () => namesInput.value.split('\n').map(name => name.trim()).filter(name => name !== '');
+
+        const drawWheel = () => {
+            names = getNames();
+            const numOptions = names.length;
+            if (numOptions === 0) { ctx.clearRect(0, 0, 600, 600); return; }
+            
+            const arcSize = (2 * Math.PI) / numOptions;
+            const baseFontSize = 400 / numOptions; 
+            const fontSize = Math.max(6, Math.min(22, baseFontSize));
+
+            ctx.clearRect(0, 0, 600, 600);
+            ctx.save();
+            ctx.translate(300, 300);
+
+            names.forEach((name, i) => {
+                const angle = i * arcSize;
+                ctx.beginPath();
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.moveTo(0, 0);
+                // --- شعاع داخلی برای جا دادن لوگو ---
+                ctx.arc(0, 0, 290, angle, angle + arcSize);
+                ctx.lineTo(0, 0);
+                ctx.fill();
+                ctx.save();
+                ctx.fillStyle = "white";
+                ctx.font = `bold ${fontSize}px Vazirmatn, sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                const textAngle = angle + arcSize / 2;
+                ctx.rotate(textAngle);
+                ctx.fillText(name, 180, 0);
+                ctx.restore();
+            });
+            ctx.restore();
+        };
+        
+        const showModal = (winner) => { winnerNameEl.textContent = winner; modal.classList.add('visible'); };
+        const hideModal = () => { modal.classList.remove('visible'); };
+
+        const spin = () => {
+            if (spinButton.classList.contains('disabled')) return;
+            if (scenarioIndex >= winnerScenario.length) {
+                alert("سناریوی قرعه‌کشی به پایان رسیده است!");
+                spinButton.classList.add('disabled');
+                spinButton.innerText = "پایان";
+                return;
+            }
+
+            names = getNames();
+            const nextWinner = winnerScenario[scenarioIndex];
+            const winnerIndex = names.indexOf(nextWinner);
+
+            if (winnerIndex === -1) {
+                alert(`خطا: برنده بعدی طبق سناریو ("${nextWinner}") در لیست اسامی وجود ندارد!`);
+                return;
+            }
+
+            spinButton.classList.add('disabled');
+            namesInput.disabled = true;
+
+            const spinDuration = Math.random() * 5 + 10;
+            const spinDirection = Math.random() < 0.5 ? 1 : -1;
+            
+            const numOptions = names.length;
+            const arcSize = (2 * Math.PI) / numOptions;
+            const sliceMiddle = arcSize * winnerIndex + arcSize / 2;
+            
+            const randomSpins = Math.floor(Math.random() * 5) + 20;
+
+            const currentAngleDeg = totalRotation % 360;
+            const targetSliceAngleDeg = (sliceMiddle * 180 / Math.PI);
+            const targetFinalAngle = 360 - targetSliceAngleDeg;
+
+            const spinAmount = (randomSpins * 360 * spinDirection) + (targetFinalAngle - currentAngleDeg);
+            totalRotation += spinAmount;
+            
+            canvas.style.transitionDuration = `${spinDuration.toFixed(2)}s`;
+            canvas.style.transform = `rotate(${totalRotation}deg)`;
+            
+            // --- اصلاحیه: چرخش لوگو هماهنگ با چرخونه ---
+            wheelLogo.style.transitionDuration = `${spinDuration.toFixed(2)}s`;
+            wheelLogo.style.transform = `rotate(${totalRotation}deg)`;
+            // ------------------------------------------
+
+            setTimeout(() => {
+                showModal(nextWinner);
+                scenarioIndex++;
+                if (scenarioIndex >= winnerScenario.length) {
+                    spinButton.innerText = "پایان";
+                } else {
+                   spinButton.classList.remove('disabled'); 
+                }
+                namesInput.disabled = false;
+            }, spinDuration * 1000 + 200);
+        };
+
+        namesInput.addEventListener('input', drawWheel);
+        spinButton.addEventListener('click', spin);
+        closeModalButton.addEventListener('click', hideModal);
+        
+        namesInput.value = "علی\nسارا\nنیما\nرضا\nفاطمه\nبهاره";
+        drawWheel();
+    </script>
+</body>
+</html>
